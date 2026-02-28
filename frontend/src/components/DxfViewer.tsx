@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useRef, type WheelEvent, type MouseEvent } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef, type WheelEvent, type MouseEvent } from "react";
 import DxfParser from "dxf-parser";
 
 interface DxfViewerProps {
@@ -26,25 +26,36 @@ export function DxfViewer({ dxfContent }: DxfViewerProps) {
       return { polylines: [], bounds: { minX: 0, minY: 0, maxX: 100, maxY: 100 } };
     }
 
-    const lines: { x: number; y: number }[][] = [];
+    // First pass: collect raw vertices and find Y range for flipping
+    const rawLines: { x: number; y: number }[][] = [];
+    let rawMinY = Infinity, rawMaxY = -Infinity;
     for (const entity of parsed.entities) {
       if (entity.vertices && entity.vertices.length >= 2) {
-        lines.push(entity.vertices.map((v) => ({ x: v.x, y: v.y })));
+        const verts = entity.vertices.map((v) => ({ x: v.x, y: v.y }));
+        for (const v of verts) {
+          if (v.y < rawMinY) rawMinY = v.y;
+          if (v.y > rawMaxY) rawMaxY = v.y;
+        }
+        rawLines.push(verts);
       }
     }
 
-    if (lines.length === 0) {
+    if (rawLines.length === 0) {
       return { polylines: [], bounds: { minX: 0, minY: 0, maxX: 100, maxY: 100 } };
     }
 
+    // Second pass: flip Y (DXF is Y-up, SVG is Y-down) and compute final bounds
+    const lines: { x: number; y: number }[][] = [];
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const line of lines) {
-      for (const v of line) {
+    for (const raw of rawLines) {
+      const flipped = raw.map((v) => ({ x: v.x, y: rawMinY + rawMaxY - v.y }));
+      for (const v of flipped) {
         if (v.x < minX) minX = v.x;
         if (v.y < minY) minY = v.y;
         if (v.x > maxX) maxX = v.x;
         if (v.y > maxY) maxY = v.y;
       }
+      lines.push(flipped);
     }
 
     return { polylines: lines, bounds: { minX, minY, maxX, maxY } };
@@ -65,7 +76,7 @@ export function DxfViewer({ dxfContent }: DxfViewerProps) {
   const [viewBox, setViewBox] = useState<ViewBox>(initialViewBox);
 
   // Reset viewBox when content changes
-  useMemo(() => setViewBox(initialViewBox), [initialViewBox]);
+  useEffect(() => setViewBox(initialViewBox), [initialViewBox]);
 
   const onWheel = useCallback((e: WheelEvent<SVGSVGElement>) => {
     e.preventDefault();
@@ -103,13 +114,11 @@ export function DxfViewer({ dxfContent }: DxfViewerProps) {
     return <p style={{ marginTop: 16, color: "#6b7280" }}>No geometry found in DXF file.</p>;
   }
 
-  // DXF uses Y-up, SVG uses Y-down. Flip with a transform.
-  const flipY = bounds.minY + bounds.maxY;
-
   return (
     <svg
       ref={svgRef}
       viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
+      preserveAspectRatio="xMidYMid meet"
       style={{
         width: "100%",
         height: 400,
@@ -124,17 +133,15 @@ export function DxfViewer({ dxfContent }: DxfViewerProps) {
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseUp}
     >
-      <g transform={`scale(1,-1) translate(0,${-flipY})`}>
-        {polylines.map((pl, i) => (
-          <polyline
-            key={i}
-            points={pl.map((v) => `${v.x},${v.y}`).join(" ")}
-            fill="none"
-            stroke="#2563eb"
-            strokeWidth={viewBox.width / 500}
-          />
-        ))}
-      </g>
+      {polylines.map((pl, i) => (
+        <polyline
+          key={i}
+          points={pl.map((v) => `${v.x},${v.y}`).join(" ")}
+          fill="none"
+          stroke="#2563eb"
+          strokeWidth={viewBox.width / 500}
+        />
+      ))}
     </svg>
   );
 }

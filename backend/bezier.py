@@ -1,6 +1,33 @@
-"""Bezier curve to polyline flattening using recursive De Casteljau subdivision."""
+"""Bezier curve to polyline flattening using recursive De Casteljau subdivision.
 
-from backend.trace import Point, BezierSegment, TracedPath
+This module is kept for reference but is no longer used in the pipeline.
+The trace module now returns polylines directly via OpenCV contours.
+"""
+
+from dataclasses import dataclass
+
+
+@dataclass
+class Point:
+    """A 2D point."""
+    x: float
+    y: float
+
+
+@dataclass
+class BezierSegment:
+    """A cubic Bezier curve segment or corner segment."""
+    c1: Point
+    c2: Point
+    end_point: Point
+    is_corner: bool
+
+
+@dataclass
+class TracedPath:
+    """A traced path consisting of a start point and a sequence of segments."""
+    start_point: Point
+    segments: list[BezierSegment]
 
 
 def _subdivide_bezier(
@@ -26,7 +53,6 @@ def _subdivide_bezier(
         points.append(p3)
         return
 
-    # De Casteljau subdivision at midpoint
     m01 = ((p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2)
     m12 = ((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2)
     m23 = ((p2[0] + p3[0]) / 2, (p2[1] + p3[1]) / 2)
@@ -41,19 +67,7 @@ def _subdivide_bezier(
 def flatten_paths(
     paths: list[TracedPath], tolerance: float = 0.1
 ) -> list[list[tuple[float, float]]]:
-    """Convert Bezier curve paths to polylines.
-
-    Uses recursive De Casteljau subdivision with a flatness tolerance
-    to approximate cubic Bezier curves as sequences of line segments.
-
-    Args:
-        paths: List of TracedPath objects containing Bezier segments.
-        tolerance: Maximum allowed deviation from the true curve (in mm).
-                   Default 0.1mm is suitable for CNC applications.
-
-    Returns:
-        List of polylines, where each polyline is a list of (x, y) tuples.
-    """
+    """Convert Bezier curve paths to polylines."""
     polylines: list[list[tuple[float, float]]] = []
 
     for path in paths:
