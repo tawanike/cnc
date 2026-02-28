@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { DropZone } from "./components/DropZone";
 import { ScaleInput } from "./components/ScaleInput";
 import { Preview } from "./components/Preview";
+import { DxfViewer } from "./components/DxfViewer";
 import { fetchPreview, fetchConvert, type PreviewResult } from "./api";
 
 function App() {
@@ -11,9 +12,11 @@ function App() {
   const [previewData, setPreviewData] = useState<PreviewResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dxfContent, setDxfContent] = useState<string | null>(null);
 
   useEffect(() => {
     if (!file) return;
+    setDxfContent(null);
     const timeoutId = setTimeout(() => {
       setLoading(true);
       setError(null);
@@ -34,6 +37,8 @@ function App() {
     const heightNum = targetHeightMm ? parseFloat(targetHeightMm) : undefined;
     try {
       const blob = await fetchConvert(file, widthNum, heightNum);
+      const text = await blob.text();
+      setDxfContent(text);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -76,6 +81,12 @@ function App() {
           >
             Download DXF
           </button>
+          {dxfContent && (
+            <div style={{ marginTop: 16 }}>
+              <h3>DXF Output</h3>
+              <DxfViewer dxfContent={dxfContent} />
+            </div>
+          )}
         </>
       )}
     </div>
