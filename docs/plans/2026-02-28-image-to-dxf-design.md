@@ -78,7 +78,7 @@ Processing Pipeline
 
 | Component | Technology |
 |-----------|-----------|
-| Frontend | Vanilla HTML/CSS/JS |
+| Frontend | React (Vite + TypeScript) |
 | Backend | Python 3.11+, FastAPI, Uvicorn |
 | Image processing | OpenCV (cv2) |
 | Tracing | Potrace (via pypotrace or subprocess) |
@@ -98,10 +98,18 @@ cnc/
 │   ├── bezier.py             # Bezier to polyline conversion
 │   ├── dxf_writer.py         # DXF file generation
 │   └── requirements.txt
-├── frontend/
+├── frontend/               # React (Vite + TypeScript)
+│   ├── src/
+│   │   ├── App.tsx
+│   │   ├── main.tsx
+│   │   └── components/
+│   │       ├── DropZone.tsx
+│   │       ├── Preview.tsx
+│   │       └── ScaleInput.tsx
 │   ├── index.html
-│   ├── style.css
-│   └── app.js
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── vite.config.ts
 ├── tests/
 │   ├── test_classify.py
 │   ├── test_preprocess.py
