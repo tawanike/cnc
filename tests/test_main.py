@@ -1,28 +1,16 @@
-import io
-import numpy as np
-from PIL import Image
 import pytest
 from httpx import AsyncClient, ASGITransport
 
 from backend.main import app
 
 
-def _make_test_png() -> bytes:
-    img = np.ones((100, 100), dtype=np.uint8) * 255
-    img[20:80, 20:80] = 0
-    buf = io.BytesIO()
-    Image.fromarray(img).save(buf, format="PNG")
-    return buf.getvalue()
-
-
 @pytest.mark.asyncio
-async def test_convert_endpoint():
+async def test_convert_endpoint(test_png_bytes):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        png = _make_test_png()
         response = await client.post(
             "/api/convert",
-            files={"image": ("test.png", png, "image/png")},
+            files={"image": ("test.png", test_png_bytes, "image/png")},
         )
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/dxf"
@@ -30,26 +18,24 @@ async def test_convert_endpoint():
 
 
 @pytest.mark.asyncio
-async def test_convert_with_scale():
+async def test_convert_with_scale(test_png_bytes):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        png = _make_test_png()
         response = await client.post(
             "/api/convert",
-            files={"image": ("test.png", png, "image/png")},
+            files={"image": ("test.png", test_png_bytes, "image/png")},
             data={"target_width_mm": "200"},
         )
     assert response.status_code == 200
 
 
 @pytest.mark.asyncio
-async def test_preview_endpoint():
+async def test_preview_endpoint(test_png_bytes):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        png = _make_test_png()
         response = await client.post(
             "/api/preview",
-            files={"image": ("test.png", png, "image/png")},
+            files={"image": ("test.png", test_png_bytes, "image/png")},
         )
     assert response.status_code == 200
     data = response.json()
@@ -65,3 +51,14 @@ async def test_convert_no_file():
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post("/api/convert")
     assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_convert_invalid_image():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/api/convert",
+            files={"image": ("bad.png", b"not an image", "image/png")},
+        )
+    assert response.status_code == 400
