@@ -39,3 +39,12 @@ def preview(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+
+# Serve frontend build if it exists (production)
+frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
+if frontend_dist.is_dir():
+    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="static")
