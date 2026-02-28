@@ -11,7 +11,10 @@ export function DropZone({ onFileSelect }: DropZoneProps) {
   const handleFile = useCallback(
     (file: File) => {
       if (!file.type.startsWith("image/")) return;
-      setPreview(URL.createObjectURL(file));
+      setPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(file);
+      });
       onFileSelect(file);
     },
     [onFileSelect]

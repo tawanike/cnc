@@ -14,14 +14,17 @@ function App() {
 
   useEffect(() => {
     if (!file) return;
-    setLoading(true);
-    setError(null);
-    const widthNum = targetWidthMm ? parseFloat(targetWidthMm) : undefined;
-    const heightNum = targetHeightMm ? parseFloat(targetHeightMm) : undefined;
-    fetchPreview(file, widthNum, heightNum)
-      .then(setPreviewData)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+    const timeoutId = setTimeout(() => {
+      setLoading(true);
+      setError(null);
+      const widthNum = targetWidthMm ? parseFloat(targetWidthMm) : undefined;
+      const heightNum = targetHeightMm ? parseFloat(targetHeightMm) : undefined;
+      fetchPreview(file, widthNum, heightNum)
+        .then(setPreviewData)
+        .catch((e) => setError(e.message))
+        .finally(() => setLoading(false));
+    }, 400);
+    return () => clearTimeout(timeoutId);
   }, [file, targetWidthMm, targetHeightMm]);
 
   const handleDownload = useCallback(async () => {

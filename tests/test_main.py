@@ -62,3 +62,16 @@ async def test_convert_invalid_image():
             files={"image": ("bad.png", b"not an image", "image/png")},
         )
     assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_convert_oversized_image():
+    """Uploading a file larger than 20 MB should return 413."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        big_data = b"\x00" * (20 * 1024 * 1024 + 1)
+        response = await client.post(
+            "/api/convert",
+            files={"image": ("big.png", big_data, "image/png")},
+        )
+    assert response.status_code == 413
