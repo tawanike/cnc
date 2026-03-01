@@ -5,7 +5,8 @@ import { ScaleInput } from "./components/ScaleInput";
 import { Preview } from "./components/Preview";
 import { DxfViewer } from "./components/DxfViewer";
 import { DxfDropZone } from "./components/DxfDropZone";
-import { fetchPreview, fetchConvert, type PreviewResult } from "./api";
+import { fetchPreview, fetchConvert, type PreviewResult, type CuttingParamsData } from "./api";
+import CuttingParams from "./components/CuttingParams";
 
 type Tab = "converter" | "viewer";
 
@@ -20,6 +21,8 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dxfContent, setDxfContent] = useState<string | null>(null);
+  const [outputFormat, setOutputFormat] = useState<"dxf" | "nc">("dxf");
+  const [cuttingParams, setCuttingParams] = useState<CuttingParamsData>({});
 
   // Viewer state
   const [viewerDxf, setViewerDxf] = useState<string | null>(null);
@@ -47,19 +50,20 @@ function App() {
     const widthNum = targetWidthMm ? parseFloat(targetWidthMm) : undefined;
     const heightNum = targetHeightMm ? parseFloat(targetHeightMm) : undefined;
     try {
-      const blob = await fetchConvert(file, widthNum, heightNum);
+      const blob = await fetchConvert(file, widthNum, heightNum, outputFormat, cuttingParams);
       const text = await blob.text();
       setDxfContent(text);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = file.name.replace(/\.\w+$/, ".dxf");
+      const ext = outputFormat === "nc" ? ".nc" : ".dxf";
+      a.download = file.name.replace(/\.\w+$/, ext);
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Download failed");
     }
-  }, [file, targetWidthMm, targetHeightMm]);
+  }, [file, targetWidthMm, targetHeightMm, outputFormat, cuttingParams]);
 
   const handleViewerFileLoad = useCallback((content: string, filename: string) => {
     setViewerDxf(content);
@@ -100,6 +104,22 @@ function App() {
                 onWidthChange={setTargetWidthMm}
                 onHeightChange={setTargetHeightMm}
               />
+              <div style={{ display: "flex", gap: 16, alignItems: "center", marginTop: 8 }}>
+                <span style={{ fontWeight: 500 }}>Output:</span>
+                <label>
+                  <input type="radio" name="format" value="dxf"
+                    checked={outputFormat === "dxf"} onChange={() => setOutputFormat("dxf")} />
+                  {" "}DXF
+                </label>
+                <label>
+                  <input type="radio" name="format" value="nc"
+                    checked={outputFormat === "nc"} onChange={() => setOutputFormat("nc")} />
+                  {" "}NC (G-code)
+                </label>
+              </div>
+              {outputFormat === "nc" && (
+                <CuttingParams params={cuttingParams} onChange={setCuttingParams} />
+              )}
               {loading && <p style={{ marginTop: 16 }}>Processing...</p>}
               {error && <p style={{ marginTop: 16, color: "red" }}>{error}</p>}
               {previewData && <Preview svgContent={previewData.svg} stats={previewData.stats} />}
@@ -117,7 +137,7 @@ function App() {
                   cursor: previewData ? "pointer" : "not-allowed",
                 }}
               >
-                Download DXF
+                {outputFormat === "nc" ? "Download .nc" : "Download .dxf"}
               </button>
               {dxfContent && (
                 <div style={{ marginTop: 16 }}>
