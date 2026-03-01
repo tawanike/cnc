@@ -1,6 +1,7 @@
 // frontend/src/App.tsx
 import { useState, useEffect, useCallback } from "react";
 import { DropZone } from "./components/DropZone";
+import { ImageCropper } from "./components/ImageCropper";
 import { ScaleInput } from "./components/ScaleInput";
 import { Preview } from "./components/Preview";
 import { DxfViewer } from "./components/DxfViewer";
@@ -23,47 +24,74 @@ function App() {
   const [dxfContent, setDxfContent] = useState<string | null>(null);
   const [outputFormat, setOutputFormat] = useState<"dxf" | "nc">("dxf");
   const [cuttingParams, setCuttingParams] = useState<CuttingParamsData>({});
+  const [croppedFile, setCroppedFile] = useState<File | null>(null);
+  const [showCropper, setShowCropper] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   // Viewer state
   const [viewerDxf, setViewerDxf] = useState<string | null>(null);
   const [viewerFilename, setViewerFilename] = useState<string | null>(null);
 
+  const handleFileSelect = useCallback((f: File) => {
+    setFile(f);
+    setCroppedFile(null);
+    setShowCropper(true);
+    setImageUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(f); });
+  }, []);
+
+  const handleCropApply = useCallback((cropped: File) => {
+    setCroppedFile(cropped);
+    setShowCropper(false);
+  }, []);
+
+  const handleCropSkip = useCallback(() => {
+    setShowCropper(false);
+  }, []);
+
+  const handleCropReset = useCallback(() => {
+    setCroppedFile(null);
+    setShowCropper(true);
+  }, []);
+
   useEffect(() => {
-    if (!file) return;
+    const activeFile = croppedFile ?? file;
+    if (!activeFile || showCropper) return;
     setDxfContent(null);
     const timeoutId = setTimeout(() => {
       setLoading(true);
       setError(null);
       const widthNum = targetWidthMm ? parseFloat(targetWidthMm) : undefined;
       const heightNum = targetHeightMm ? parseFloat(targetHeightMm) : undefined;
-      fetchPreview(file, widthNum, heightNum)
+      fetchPreview(activeFile, widthNum, heightNum)
         .then(setPreviewData)
         .catch((e) => setError(e.message))
         .finally(() => setLoading(false));
     }, 400);
     return () => clearTimeout(timeoutId);
-  }, [file, targetWidthMm, targetHeightMm]);
+  }, [file, croppedFile, showCropper, targetWidthMm, targetHeightMm]);
 
   const handleDownload = useCallback(async () => {
-    if (!file) return;
+    const activeFile = croppedFile ?? file;
+    if (!activeFile) return;
     setError(null);
     const widthNum = targetWidthMm ? parseFloat(targetWidthMm) : undefined;
     const heightNum = targetHeightMm ? parseFloat(targetHeightMm) : undefined;
     try {
-      const blob = await fetchConvert(file, widthNum, heightNum, outputFormat, cuttingParams);
+      const blob = await fetchConvert(activeFile, widthNum, heightNum, outputFormat, cuttingParams);
       const text = await blob.text();
       setDxfContent(text);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       const ext = outputFormat === "nc" ? ".nc" : ".dxf";
-      a.download = file.name.replace(/\.\w+$/, ext);
+      const baseName = file?.name.replace(/\.\w+$/, "") ?? "output";
+      a.download = baseName + ext;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Download failed");
     }
-  }, [file, targetWidthMm, targetHeightMm, outputFormat, cuttingParams]);
+  }, [file, croppedFile, targetWidthMm, targetHeightMm, outputFormat, cuttingParams]);
 
   const handleViewerFileLoad = useCallback((content: string, filename: string) => {
     setViewerDxf(content);
@@ -95,9 +123,31 @@ function App() {
 
       {tab === "converter" && (
         <>
-          <DropZone onFileSelect={setFile} />
-          {file && (
+          <DropZone onFileSelect={handleFileSelect} />
+          {file && showCropper && imageUrl && (
+            <ImageCropper
+              imageUrl={imageUrl}
+              onCropApply={handleCropApply}
+              onSkip={handleCropSkip}
+            />
+          )}
+          {file && !showCropper && (
             <>
+              <button
+                onClick={handleCropReset}
+                style={{
+                  marginTop: 8,
+                  padding: "4px 12px",
+                  fontSize: 13,
+                  background: "white",
+                  color: "#6b7280",
+                  border: "1px solid #d1d5db",
+                  borderRadius: 4,
+                  cursor: "pointer",
+                }}
+              >
+                Re-crop Image
+              </button>
               <ScaleInput
                 targetWidthMm={targetWidthMm}
                 targetHeightMm={targetHeightMm}
