@@ -6,6 +6,9 @@ from backend.preprocess import preprocess_image
 from backend.trace import trace_bitmap
 from backend.dxf_writer import write_dxf
 from backend.svg_writer import write_svg
+from backend.kerf_offset import offset_polylines
+from backend.arc_fit import fit_arcs
+from backend.nc_writer import write_nc, CuttingParams
 
 
 def _decode_image(image_bytes: bytes) -> np.ndarray:
@@ -36,13 +39,31 @@ def convert_image(
     filename: str,
     target_width_mm: float | None = None,
     target_height_mm: float | None = None,
+    output_format: str = "dxf",
+    cutting_params: CuttingParams | None = None,
 ) -> bytes:
-    """Full pipeline: image bytes to DXF bytes."""
+    """Full pipeline: image bytes to DXF or NC bytes."""
     img = _decode_image(image_bytes)
     image_type = classify_image(img)
     binary = preprocess_image(img, image_type)
     polylines = trace_bitmap(binary)
     scale = _compute_scale(img.shape[1], img.shape[0], target_width_mm, target_height_mm)
+
+    if output_format == "nc":
+        params = cutting_params or CuttingParams()
+        params.filename = filename.rsplit(".", 1)[0] + ".nc"
+
+        # Scale polylines first
+        scaled = [[(x * scale, y * scale) for x, y in poly] for poly in polylines]
+
+        # Apply kerf offset
+        offset = offset_polylines(scaled, kerf_width=params.kerf_width)
+
+        # Fit arcs to each contour
+        shapes = [fit_arcs(contour) for contour in offset]
+
+        return write_nc(shapes, params)
+
     return write_dxf(polylines, scale_factor=scale)
 
 

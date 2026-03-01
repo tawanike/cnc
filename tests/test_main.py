@@ -75,3 +75,53 @@ async def test_convert_oversized_image():
             files={"image": ("big.png", big_data, "image/png")},
         )
     assert response.status_code == 413
+
+
+@pytest.mark.asyncio
+async def test_convert_nc_format(test_png_bytes):
+    """POST /api/convert with format=nc should return NC file."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.post(
+            "/api/convert",
+            files={"image": ("test.png", test_png_bytes, "image/png")},
+            data={"format": "nc"},
+        )
+    assert resp.status_code == 200
+    assert "output.nc" in resp.headers["content-disposition"]
+    assert "G21" in resp.text
+
+
+@pytest.mark.asyncio
+async def test_convert_nc_with_params(test_png_bytes):
+    """NC endpoint should accept cutting parameters."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.post(
+            "/api/convert",
+            files={"image": ("test.png", test_png_bytes, "image/png")},
+            data={
+                "format": "nc",
+                "feed_rate": "2000",
+                "safe_z": "15",
+            },
+        )
+    assert resp.status_code == 200
+    assert "F2000" in resp.text
+    assert "Z15.0000" in resp.text
+
+
+@pytest.mark.asyncio
+async def test_convert_default_still_dxf(test_png_bytes):
+    """Default format should remain DXF."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        resp = await client.post(
+            "/api/convert",
+            files={"image": ("test.png", test_png_bytes, "image/png")},
+        )
+    assert resp.status_code == 200
+    assert "output.dxf" in resp.headers["content-disposition"]
