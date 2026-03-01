@@ -24,11 +24,25 @@ export function ImageCropper({ imageUrl, onCropApply, onSkip }: ImageCropperProp
   const [aspectOption, setAspectOption] = useState<AspectOption>("free");
   const [customW, setCustomW] = useState("4");
   const [customH, setCustomH] = useState("3");
+  const [scaleFactor, setScaleFactor] = useState("1");
 
   const aspect =
     aspectOption === "custom"
       ? (parseFloat(customW) || 1) / (parseFloat(customH) || 1)
       : ASPECT_RATIOS[aspectOption];
+
+  const scale = Math.max(1, parseFloat(scaleFactor) || 1);
+
+  // Compute cropped region dimensions in natural pixels for display
+  const cropInfo = (() => {
+    const image = imgRef.current;
+    if (!image || !completedCrop) return null;
+    const sx = image.naturalWidth / image.width;
+    const sy = image.naturalHeight / image.height;
+    const w = Math.round(completedCrop.width * sx);
+    const h = Math.round(completedCrop.height * sy);
+    return { w, h, scaledW: Math.round(w * scale), scaledH: Math.round(h * scale) };
+  })();
 
   const handleApply = useCallback(async () => {
     const image = imgRef.current;
@@ -37,18 +51,22 @@ export function ImageCropper({ imageUrl, onCropApply, onSkip }: ImageCropperProp
     const canvas = document.createElement("canvas");
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
-    canvas.width = completedCrop.width * scaleX;
-    canvas.height = completedCrop.height * scaleY;
+    const srcW = completedCrop.width * scaleX;
+    const srcH = completedCrop.height * scaleY;
+    canvas.width = Math.round(srcW * scale);
+    canvas.height = Math.round(srcH * scale);
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     ctx.drawImage(
       image,
       completedCrop.x * scaleX,
       completedCrop.y * scaleY,
-      completedCrop.width * scaleX,
-      completedCrop.height * scaleY,
+      srcW,
+      srcH,
       0,
       0,
       canvas.width,
@@ -62,7 +80,7 @@ export function ImageCropper({ imageUrl, onCropApply, onSkip }: ImageCropperProp
 
     const file = new File([blob], "cropped.png", { type: "image/png" });
     onCropApply(file);
-  }, [completedCrop, onCropApply]);
+  }, [completedCrop, onCropApply, scale]);
 
   return (
     <div style={{ marginTop: 16 }}>
@@ -119,6 +137,32 @@ export function ImageCropper({ imageUrl, onCropApply, onSkip }: ImageCropperProp
           crossOrigin="anonymous"
         />
       </ReactCrop>
+
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12, flexWrap: "wrap" }}>
+        <span style={{ fontWeight: 500 }}>Scale:</span>
+        {["1", "2", "4", "10", "20"].map((v) => (
+          <button
+            key={v}
+            onClick={() => setScaleFactor(v)}
+            style={{
+              padding: "4px 10px",
+              border: scaleFactor === v ? "2px solid #2563eb" : "1px solid #d1d5db",
+              borderRadius: 4,
+              background: scaleFactor === v ? "#eff6ff" : "white",
+              cursor: "pointer",
+              fontWeight: scaleFactor === v ? 600 : 400,
+              fontSize: 13,
+            }}
+          >
+            {v}x
+          </button>
+        ))}
+        {cropInfo && (
+          <span style={{ fontSize: 13, color: "#6b7280", marginLeft: 8 }}>
+            {cropInfo.w}x{cropInfo.h}px → {cropInfo.scaledW}x{cropInfo.scaledH}px
+          </span>
+        )}
+      </div>
 
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <button
