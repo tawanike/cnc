@@ -1,6 +1,9 @@
 services:
   cnc:
-    build: .
-    ports:
-      - "8000:8000"
+    build:
+      context: .
+      network: host
+    network_mode: host
+    environment:
+      - PORT=8006
     restart: unless-stopped

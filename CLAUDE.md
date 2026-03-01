@@ -57,3 +57,24 @@ Input Image → classify → preprocess → trace → bezier flatten → dxf_wri
 - Coordinates are `tuple[float, float]` in pixel/mm space
 - Commit messages use `feat:` / `fix:` prefixes
 - Tests use pytest; one test file per backend module
+
+## Subagent Strategy
+
+- Use subagents liberally to keep main context window clean
+- Offload research, exploration and parallelizable tasks to subagents
+- For complex problems, throw more compute at it via subagents
+- One task per subagent for focused execution
+
+## Architecture Principles
+
+- **DRY Principle** Don't repeat yourself. Avoid code duplication.
+- **KISS Principle** Keep it simple, stupid. Avoid over-engineering.
+- **YAGNI Principle** You ain't gonna need this. Avoid premature optimization.
+- **SOLID Principles** Apply SOLID principles to the codebase.
+
+## Core Principles
+
+- **Simplicity First** Make every change as simple as possible. Impact minimal code.
+- **No Laziness** Find root causes. No temporary fixes. Senior developer standards.
+- **Minimal Impact** Changes should only touch what's necessary. Avoid introducing new bugs.
+- **Security First** Security is everyone's responsibility.
