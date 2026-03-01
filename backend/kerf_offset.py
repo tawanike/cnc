@@ -32,7 +32,7 @@ def offset_polylines(
         pco.Clear()
         # Remove closing point for Clipper (it auto-closes)
         points = poly[:-1] if poly[0] == poly[-1] else poly
-        scaled = [(int(x * _CLIPPER_SCALE), int(y * _CLIPPER_SCALE)) for x, y in points]
+        scaled = [(round(x * _CLIPPER_SCALE), round(y * _CLIPPER_SCALE)) for x, y in points]
 
         pco.AddPath(scaled, pyclipper.JT_ROUND, pyclipper.ET_CLOSEDPOLYGON)
         expanded = pco.Execute(offset_distance * _CLIPPER_SCALE)
