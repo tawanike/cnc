@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:pypi.org)",
+      "WebFetch(domain:github.com)",
+      "Bash(apt list:*)",
+      "Bash(pip install:*)",
+      "Bash(python3:*)",
+      "Bash(source:*)",
+      "Bash(git:*)",
+      "Bash(python:*)",
+      "Bash(grep:*)",
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(timeout 10 npm run:*)",
+      "Bash(npm run:*)",
+      "Bash(node:*)",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_file_upload",
+      "mcp__plugin_playwright_playwright__browser_click",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "Bash(ls:*)",
+      "Bash(potrace:*)",
+      "Bash(sudo apt-get:*)",
+      "Bash(curl:*)",
+      "mcp__plugin_playwright_playwright__browser_snapshot",
+      "Bash(ssh:*)",
+      "Bash(rsync:*)"
+    ]
+  }
+}

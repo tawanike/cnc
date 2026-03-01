@@ -3,7 +3,7 @@ uvicorn[standard]==0.34.0
 python-multipart==0.0.20
 opencv-python-headless==4.10.0.84
 numpy>=1.26.0
-potracer==0.0.4
+scipy>=1.12.0
 ezdxf==1.4.2
 Pillow>=10.0.0
 pytest==8.3.4
