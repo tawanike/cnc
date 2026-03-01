@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+.git/
+.claude/
+.playwright-mcp/
+.pytest_cache/
+node_modules/
+frontend/dist/
+*.pyc
